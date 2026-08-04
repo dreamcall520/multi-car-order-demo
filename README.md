@@ -1,6 +1,8 @@
-# overseas-crm-demo
+# Multi-Order Workspace Demo
 
 这是一个个人 GitHub 演示项目，用于沉淀可公开分享的产品方法、脱敏原型和通用案例。
+
+本次新增 `index.html`：一个独立的多项目清单、订单集合和明细查看交互示例。所有名称、编号、状态和金额均为虚构演示数据。
 
 ## 内容边界
 
