@@ -6,7 +6,9 @@
 
 主演示文件为 `multi-car-order-demo.html`：一个独立的多项目清单、订单集合和明细查看交互示例。所有名称、编号、状态和金额均为虚构演示数据。
 
-本次按项目负责人明确授权，额外上传两份 PC 端测试原型：`customer-detail-purchase-list.html` 与 `customer-detail-demand-agent-order.html`。
+本次按项目负责人明确授权，额外上传两份 PC 端测试原型：`customer-detail-purchase-list.html` 与 `customer-detail-demand-agent-order.html`，以及移动端测试草稿：`crm-mobile-multi-car-agent-order-draft.html`。
+
+移动端文件为当前评审草稿：已覆盖采购清单、需求多车源与代客建单交互，但尚待代码清理和截图验收，不应视为最终原型或可直接投入生产的实现。
 
 ## 内容边界
 
