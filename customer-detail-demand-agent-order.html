@@ -1,0 +1,163 @@
+<!doctype html>
+<style>
+.demand-head{flex-wrap:nowrap}
+.demand-head>div:first-child{display:flex;align-items:center;min-width:0;overflow:hidden;white-space:nowrap}
+.demand-head .status{flex:none;margin-right:10px}
+.demand-head .meta{font-size:12px;white-space:nowrap}
+.demand-head .meta b{margin:0 8px 0 4px}
+.demand-head>div:last-child{display:flex;align-items:center;gap:14px;white-space:nowrap}
+.demand-head .demand-action{font-size:13px}
+.demand-list-status{height:34px;display:flex;align-items:center;justify-content:flex-end;color:#687382;font-size:12px}
+.unavailable-demand{margin-top:18px}
+.unavailable-demand .demand-head{background:#fafbfc}
+.unavailable-tip{color:#8d96a3;font-size:12px}
+#buyerDrawer{width:790px;max-width:calc(100vw - 48px)}
+#buyerDrawer .drawer-head{height:64px;padding:0 56px;font-size:18px}
+#buyerDrawer .drawer-body{padding:18px 56px;max-height:calc(100vh - 130px)}
+#buyerDrawer .drawer-foot{padding:14px 56px}
+#buyerDrawer .field{margin:0 0 14px;gap:12px}
+#buyerDrawer .field label{min-width:128px;text-align:right}
+#buyerDrawer .field input,#buyerDrawer .field select{flex:1;min-width:0}
+#buyerDrawer .amount{font-size:14px;font-weight:600;margin:-2px 0 20px 128px;padding:0;border:0;background:none;color:#2f77f9}
+#buyerDrawer .amount .info-icon{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2f77f9;color:#fff;font-size:11px;margin-right:7px}
+#buyerDrawer .amount .cny{margin-left:10px;color:#7c8796;font-size:12px;font-weight:400}
+#buyerDrawer .legacy-note{padding:12px 14px;line-height:22px;border:1px solid #9bc7ff;background:#ecf6ff;color:#2f5e94;border-radius:5px;margin:2px 0 20px}
+#buyerDrawer .entity{color:#ff4d4f;font-weight:500}
+#buyerDrawer .platforms{display:flex;align-items:center;gap:16px;white-space:nowrap}
+#buyerDrawer .platforms label{min-width:auto;text-align:left;font-weight:400}
+#buyerDrawer .platforms input{flex:none;width:16px;min-width:16px;height:16px;padding:0;vertical-align:-3px}
+#newDemandModal{width:1120px}
+#newDemandModal .modal-body{padding:22px 28px;max-height:calc(100vh - 190px);overflow:auto}
+#newDemandModal .field{margin:0 0 16px}
+#newDemandModal .type-row{height:32px;gap:18px}
+#newDemandModal .type-row>label{min-width:auto;text-align:left;white-space:nowrap}
+#newDemandModal .type-row>label:first-child{min-width:85px;text-align:right}
+#newDemandModal .type-row input{min-width:0;width:16px;height:16px;vertical-align:-3px;margin-right:5px}
+#newDemandModal .source{margin:18px 0 12px}
+#newDemandModal .source-body{padding:14px 16px}
+#newDemandModal .new-source-grid{grid-template-columns:minmax(260px,2fr) 110px 120px 140px 110px;gap:0;padding:11px 14px}
+#newDemandModal .new-source-grid span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#newDemandModal .new-source-grid span:first-child{white-space:normal;overflow:visible}
+#newDemandModal .modal-foot{padding:14px 20px}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const demand=document.querySelector('.demand');
+  const table=demand.querySelector('table');
+  const button=demand.querySelector('.primary');
+  const rows=[...table.tBodies[0].rows];
+  table.tHead.rows[0].insertCell(0).outerHTML='<th style="width:52px"><input id="demandSelectAll" type="checkbox" aria-label="全选" title="全选可批量建单车源"></th>';
+  table.tHead.rows[0].insertCell(-1).outerHTML='<th style="width:82px">操作</th>';
+  rows.forEach(function(row){
+    const onSale=row.cells[5].textContent.trim()==='在售';
+    const eligible=onSale&&row.cells[7].textContent.includes('B2C-非自营')&&row.dataset.orderCreated!=='true';
+    row.insertCell(0).innerHTML='<input class="demand-select" type="checkbox" '+(eligible?'':'disabled title="已创建订单或不满足代客建单条件，不可批量选择"')+'>';
+    const action=row.insertCell(-1);
+    action.innerHTML='<button class="link demand-action" '+(eligible?'':'disabled title="已创建订单或不满足代客建单条件" style="color:#aeb7c4;cursor:not-allowed"')+'>代客建单</button>';
+    if(eligible)action.querySelector('button').onclick=function(){
+      const fob=Number(row.cells[7].textContent.replace(/[^0-9]/g,''));
+      setOrderAmount(1,fob);
+      document.getElementById('mask').classList.add('show');
+      document.getElementById('buyerDrawer').classList.add('show');
+    };
+  });
+  const count=document.createElement('span');
+  count.style.cssText='margin-right:14px;color:#687382;font-size:12px';
+  const listStatus=document.createElement('div');
+  listStatus.className='demand-list-status';
+  demand.querySelector('.table').insertBefore(listStatus,table);
+  listStatus.appendChild(count);
+  const actionArea=button.parentNode;
+  ['修改','写跟进'].forEach(function(text){
+    const action=document.createElement('button');
+    action.className='link demand-action'; action.type='button'; action.textContent=text;
+    action.onclick=function(){toast(text+'入口沿用现有需求能力')};
+    actionArea.insertBefore(action,actionArea.firstChild);
+  });
+  function selected(){return rows.filter(function(row){return row.querySelector('.demand-select').checked})}
+  function update(){
+    const cars=selected();
+    const selectAll=document.getElementById('demandSelectAll');
+    if(selectAll)selectAll.checked=cars.length===rows.filter(function(row){return !row.querySelector('.demand-select').disabled}).length;
+    count.textContent='已选 '+cars.length+' 台车';
+    button.disabled=!cars.length;
+    button.style.opacity=cars.length?'1':'.5';
+    button.style.cursor=cars.length?'pointer':'not-allowed';
+  }
+  table.addEventListener('change',update); update();
+  document.getElementById('demandSelectAll').onchange=function(){
+    const checked=this.checked;
+    rows.forEach(function(row){const input=row.querySelector('.demand-select');if(!input.disabled)input.checked=checked});
+    update();
+  };
+  const originalOpen=window.openModal;
+  window.openModal=function(id){
+    if(id!=='orderModal') return originalOpen(id);
+    const cars=selected(); if(!cars.length)return;
+    const total=cars.reduce(function(sum,row){return sum+Number(row.cells[7].textContent.replace(/[^0-9]/g,''))},0);
+    setOrderAmount(cars.length,total);
+    document.getElementById('mask').classList.add('show');
+    document.getElementById('buyerDrawer').classList.add('show');
+  };
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const available=document.querySelector('.demand');
+  const unsupported=document.createElement('div');
+  unsupported.className='demand unavailable-demand';
+  unsupported.innerHTML='<div class="demand-head"><div><span class="status">进行中</span><span class="meta">需求编号：<b>BO2076877990647922688901</b>需求属性：<b>客户需求</b>预计成交日期：<b>2026-08-20</b>创建时间：<b>2026-08-04 16:06:42</b></span></div><div><span class="unavailable-tip">当前需求不支持代客建单</span><button class="link demand-action" style="margin-left:14px">写跟进</button><button class="link demand-action" style="margin-left:14px">修改</button><button class="link demand-action" style="margin-left:14px">动态</button></div></div><div class="table"><table><thead><tr><th>图片</th><th>车源 ID</th><th>品牌</th><th>车系</th><th>车型</th><th>商品状态</th><th>FOB价格</th><th>车源渠道</th><th>交易方式</th><th>新旧类型</th><th>操作</th></tr></thead><tbody><tr><td><span class="pic"></span></td><td>702381025</td><td>宝马</td><td>X3</td><td>2020款 xDrive 25i</td><td><span class="tag">在售</span></td><td>$28,600</td><td>B2C-自营</td><td>Buy Now</td><td>二手车</td><td><span class="unavailable-tip">不支持代客建单</span></td></tr></tbody></table></div>';
+  available.insertAdjacentElement('afterend',unsupported);
+  unsupported.querySelector('.demand-head .unavailable-tip').remove();
+  const unsupportedTable=unsupported.querySelector('table');
+  unsupportedTable.tHead.rows[0].insertCell(0).outerHTML='<th style="width:52px"><input type="checkbox" disabled aria-label="全选不可用"></th>';
+  unsupportedTable.tBodies[0].rows[0].insertCell(0).innerHTML='<input type="checkbox" disabled title="该车源不支持代客建单">';
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const drawer=document.getElementById('buyerDrawer');
+  window.setOrderAmount=function(carCount,total){
+    const cny=Math.round(total*6.74).toLocaleString('en-US');
+    document.getElementById('amount').innerHTML='<span class="info-icon">i</span>共 '+carCount+' 台车，FOB 合计：$'+total.toLocaleString('en-US')+'<span class="cny">约 ¥'+cny+'</span>';
+  };
+  window.setOrderAmount(2,37354);
+  const body=drawer.querySelector('.drawer-body');
+  body.insertAdjacentHTML('afterbegin','<div class="legacy-note">• 完善客户信息后，客户在独立站注册后，可直接进行线上支付；<br>• 点击确认创建订单，当前客户的“需求”将自动变更状态为“成功”。</div>');
+  const fields=[...body.querySelectorAll('.field')];
+  fields[0].insertAdjacentHTML('beforebegin','<div class="field entity"><label>客户出海主体：</label><span>壹览群车汽车服务（上海）有限公司</span></div>');
+  fields[1].insertAdjacentElement('afterend',document.getElementById('amount'));
+  fields[0].innerHTML='<label><b style="color:#ff4d4f">*</b> 客户付款平台：</label><div class="platforms"><label><input type="radio" name="platform"> 阿里店铺_1店</label><label><input type="radio" name="platform"> 阿里店铺_2店</label><label><input type="radio" name="platform"> MIC店铺</label><label><input type="radio" name="platform" checked> 独立站</label><label><input type="radio" name="platform"> 线下</label></div>';
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const createButton=[...document.querySelectorAll('.head .link')].find(function(el){return el.textContent.includes('新建需求')});
+  if(!createButton)return;
+  const modal=document.createElement('section');
+  modal.className='modal'; modal.id='newDemandModal';
+  modal.innerHTML=`<div class="modal-head">新建需求<button class="close" onclick="closeAll()">×</button></div><div class="modal-body"><div class="field"><label><b style="color:#ff4d4f">*</b> 需求属性：</label><label style="margin-right:16px"><input type="radio" name="demandType"> 客户需求</label><label style="margin-right:16px"><input type="radio" name="demandType"> 调研</label><label><input type="radio" name="demandType" checked> 代客建单</label></div><div class="field"><label><b style="color:#ff4d4f">*</b> 预计成交日期：</label><input type="date" value="2026-08-15"></div><div id="newDemandSources"></div><button class="link" id="addNewDemandSource">⊕ 添加车源</button></div><div class="modal-foot"><button class="secondary" onclick="closeAll()">取消</button><button class="primary" id="saveDemand">仅保存需求</button><button class="primary" id="createDemandOrder">立即创建订单</button></div>`;
+  modal.querySelector('.modal-body>.field').classList.add('type-row');
+  modal.querySelectorAll('.source-grid').forEach(function(grid){grid.classList.add('new-source-grid')});
+  document.body.appendChild(modal);
+  let sourceNo=0;
+  function addSource(){
+    sourceNo+=1;
+    const source=document.createElement('div'); source.className='source';
+    source.innerHTML=`<div class="source-head">需求车源 ${sourceNo}${sourceNo>1?'<button class="link" type="button">删除</button>':''}</div><div class="source-body"><div class="field"><label><b style="color:#ff4d4f">*</b> 车源ID或商品ID：</label><input value="${sourceNo===1?'702588001':'703096140'}"><button class="link" type="button">搜索</button></div><div class="source-grid"><span>品牌 / 车系 / 车型</span><span>商品状态</span><span>FOB 价格</span><span>车源渠道</span><span>交易方式</span></div><div class="source-grid"><span>${sourceNo===1?'雪佛兰 科鲁兹 2018款 1.5L 自动':'奥迪 A6L 2018款 30周年车型'}</span><span><i class="tag">在售</i></span><span>${sourceNo===1?'$11,256':'$26,098'}</span><span>B2C-非自营</span><span>${sourceNo===1?'Inquire':'Buy Now'}</span></div></div>`;
+    source.querySelectorAll('.source-grid').forEach(function(grid){grid.classList.add('new-source-grid')});
+    const remove=source.querySelector('.source-head .link'); if(remove)remove.onclick=function(){source.remove()};
+    document.getElementById('newDemandSources').appendChild(source);
+  }
+  addSource();
+  document.getElementById('addNewDemandSource').onclick=addSource;
+  createButton.onclick=function(){document.getElementById('mask').classList.add('show');modal.classList.add('show')};
+  document.getElementById('saveDemand').onclick=function(){closeAll();toast('需求已保存')};
+  document.getElementById('createDemandOrder').onclick=function(){
+    modal.classList.remove('show');setOrderAmount(sourceNo,sourceNo===1?11256:37354);document.getElementById('buyerDrawer').classList.add('show');
+  };
+});
+</script>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>客户详情－需求与代客建单</title><style>
+:root{--blue:#2f77f9;--nav:#24334b;--bg:#f5f6f8;--line:#e9edf2;--text:#252a33;--sub:#7c8796;--green:#27964c}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px "PingFang SC","Microsoft YaHei",sans-serif}.app{display:flex;min-height:100vh}.aside{width:138px;flex:none;background:var(--nav);color:#d7dfeb}.brand{height:76px;padding:19px 12px;color:#fff;font-size:21px;font-weight:700;border-bottom:1px solid #3c4b61}.user{text-align:center;padding:14px;border-bottom:1px solid #3c4b61}.avatar{width:32px;height:32px;border-radius:50%;background:#65758e;margin:0 auto 8px}.nav-title{padding:15px 20px 7px;color:#fff;font-size:13px}.nav div{padding:11px 30px;font-size:13px}.nav .active{background:#1a2740;border-left:3px solid var(--blue);padding-left:27px;color:#fff}.main{flex:1;min-width:1120px;padding:16px 20px 40px}.crumb{font-weight:500;margin:3px 0 18px}.tabs{height:44px;background:#fff;border:1px solid var(--line);border-radius:4px;display:flex;align-items:center;padding:0 14px}.tabs span{padding:0 10px;border-right:1px solid #edf0f4;color:#687382}.tabs span.active{color:var(--blue);font-weight:600}.page{display:grid;grid-template-columns:minmax(820px,1fr) 300px;gap:16px;margin-top:12px}.card{background:#fff;border:1px solid var(--line);border-radius:5px}.head{height:60px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}h1,h2{margin:0;font-size:16px}.marker{display:inline-block;width:3px;height:18px;background:var(--blue);vertical-align:-3px;margin-right:8px;border-radius:2px}.link{padding:0;border:0;background:none;color:var(--blue);cursor:pointer}.primary,.secondary{height:32px;padding:0 14px;border-radius:4px;cursor:pointer}.primary{border:1px solid var(--blue);background:var(--blue);color:#fff}.secondary{border:1px solid var(--blue);background:#fff;color:var(--blue)}.demand{margin:14px;border:1px solid var(--line);border-radius:5px;overflow:hidden}.demand-head{height:58px;padding:0 18px;background:#f1f7ff;display:flex;align-items:center;justify-content:space-between}.status{font-weight:600;margin-right:20px}.meta{color:#687382}.meta b{color:#303640;font-weight:500;margin:0 16px 0 5px}.table{padding:12px;overflow:auto}table{width:100%;min-width:1070px;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{background:#fafbfc;color:#4b535e;font-weight:500}.pic{width:58px;height:36px;display:inline-block;border-radius:3px;background:linear-gradient(135deg,#e1e9f5,#c6d3e5);position:relative}.pic:after{content:"";position:absolute;left:12px;bottom:7px;width:35px;height:11px;background:#6f8099;border-radius:12px 12px 3px 3px}.tag{padding:3px 6px;border-radius:3px;background:#eaf7ef;color:var(--green);font-size:12px}.info{padding:0 14px 18px}.info .head{margin:0 -14px}.profile{border-bottom:1px solid var(--line);padding-bottom:16px}.profile h2{margin:18px 0 8px}.chips{display:flex;gap:6px}.chip{padding:4px 7px;border-radius:3px;background:#e7f7ed;color:#188a55;font-size:12px}.kv{display:grid;grid-template-columns:92px 1fr;gap:14px 8px;font-size:13px}.kv span:nth-child(odd){color:#9aa2ae}.kv span:nth-child(even){text-align:right}.mask{position:fixed;inset:0;background:#0007;display:none;z-index:10}.modal{position:fixed;z-index:11;left:50%;top:50%;transform:translate(-50%,-50%);width:960px;max-width:calc(100vw - 48px);background:#fff;border-radius:8px;display:none;box-shadow:0 12px 32px #0002}.drawer{position:fixed;z-index:11;right:0;top:0;width:550px;height:100vh;background:#fff;display:none;box-shadow:-8px 0 24px #0002}.show{display:block}.modal-head,.drawer-head{height:64px;padding:0 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-size:17px;font-weight:600}.close{border:0;background:none;color:#8993a0;font-size:28px;cursor:pointer}.modal-body,.drawer-body{padding:18px 24px;max-height:68vh;overflow:auto}.modal-foot,.drawer-foot{padding:14px 24px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}.note{padding:10px 12px;border:1px solid #cfe0ff;background:#f4f8ff;color:#4973ad;border-radius:4px;line-height:20px;margin-bottom:14px}.source{border:1px solid var(--line);border-radius:5px;margin-bottom:12px}.source-head{height:42px;padding:0 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-weight:500}.source-body{padding:12px}.field{display:flex;align-items:center;gap:8px}.field label{min-width:85px;text-align:right}.field input,.field select{height:32px;border:1px solid #dfe4eb;border-radius:4px;padding:0 8px;min-width:210px}.source-grid{display:grid;grid-template-columns:50px 1.5fr .8fr .8fr .9fr;padding:10px;gap:8px;align-items:center;border-top:1px solid var(--line)}.source-grid:first-child{border-top:0;background:#fafbfc;font-weight:500}.list{max-height:370px;overflow:auto;border:1px solid var(--line)}.list table{min-width:0}.amount{padding:12px;border:1px solid #d6e5ff;background:#f7faff;border-radius:4px;color:#3971bc;margin-bottom:16px}.toast{position:fixed;z-index:20;top:20px;left:50%;transform:translateX(-50%);background:#303844;color:#fff;padding:10px 16px;border-radius:4px;display:none}
+</style></head><body><div class="app"><aside class="aside"><div class="brand">IM</div><div class="user"><div class="avatar"></div>马晓坤</div><div class="nav-title">客户管理⌃</div><div class="nav"><div class="active">我的客户</div><div>我的任务</div><div>我的商机</div><div>跟进小记</div></div><div class="nav-title">商品管理⌄</div><div class="nav-title">需求管理⌄</div><div class="nav-title">订单管理⌄</div></aside><main class="main"><div class="crumb">客户详情</div><div class="tabs"><span>跟进记录</span><span>沟通历程</span><span>行为概览</span><span>行为轨迹</span><span>商机</span><span>任务</span><span>订阅</span><span class="active">需求</span><span>采购清单</span><span>竞拍资质</span><span>订单</span></div><div class="page"><section class="card"><div class="head"><h1><i class="marker"></i>需求 <span style="color:#7c8796;font-weight:400">（进行中：1个 成功：0个 失败：0个）</span></h1><button class="link">⊕ 新建需求</button></div><div class="demand"><div class="demand-head"><div><span class="status">进行中</span><span class="meta">需求编号：<b>BO2076877990647922688832</b>需求属性：<b>代客建单</b>预计成交日期：<b>2026-08-15</b>创建时间：<b>2026-08-04 15:42:18</b></span></div><div><button class="link">动态</button>　<button class="primary" onclick="openModal('orderModal')">代客建单</button></div></div><div class="table"><table><thead><tr><th>图片</th><th>车源 ID</th><th>品牌</th><th>车系</th><th>车型</th><th>商品状态</th><th>FOB价格</th><th>车源渠道</th><th>交易方式</th><th>新旧类型</th></tr></thead><tbody id="demandRows"><tr><td><span class="pic"></span></td><td>702588001</td><td>雪佛兰</td><td>科鲁兹</td><td>2018款 1.5L 自动</td><td><span class="tag">在售</span></td><td>$11,256</td><td>B2C-非自营</td><td>Inquire</td><td>二手车</td></tr><tr><td><span class="pic"></span></td><td>703096140</td><td>奥迪</td><td>A6L</td><td>2018款 30周年年型</td><td><span class="tag">在售</span></td><td>$26,098</td><td>B2C-非自营</td><td>Buy Now</td><td>二手车</td></tr></tbody></table></div></div></section><aside class="card info"><div class="head"><h1>客户信息</h1><button class="link">编辑</button></div><div class="profile"><h2>mingzitest12345</h2><div class="chips"><span class="chip">阿尔及利亚</span><span class="chip">独立站</span></div></div><h2>基础信息</h2><div class="kv"><span>客户 ID</span><span>C81852419141920</span><span>客户名称</span><span>mingzitest12345</span><span>客户国家</span><span>阿尔及利亚</span><span>客户阶段</span><span>待激活</span><span>客户身份</span><span>个人买家</span><span>跟进人</span><span>孙林</span></div></aside></div></main></div><div class="mask" id="mask" onclick="closeAll()"></div><section class="modal" id="orderModal"><div class="modal-head">代客建单<button class="close" onclick="closeAll()">×</button></div><div class="modal-body"><div class="note">当前需求已关联车辆默认带入。可继续添加车源，或从该客户的采购清单选择；确认带入的车辆将写回当前需求。</div><div id="orderSources"><div class="source"><div class="source-head">需求车源 1</div><div class="source-body"><div class="field"><label>车源 ID：</label><input value="702588001"><button class="link">搜索</button></div><div class="source-grid"><span>选择</span><span>车辆</span><span>FOB价格</span><span>交易方式</span><span>车源渠道</span></div><label class="source-grid"><input type="checkbox" checked><span>雪佛兰 科鲁兹 · 702588001</span><span>$11,256</span><span>Inquire</span><span>B2C-非自营</span></label></div></div><div class="source"><div class="source-head">需求车源 2</div><div class="source-body"><div class="field"><label>车源 ID：</label><input value="703096140"><button class="link">搜索</button></div><div class="source-grid"><span>选择</span><span>车辆</span><span>FOB价格</span><span>交易方式</span><span>车源渠道</span></div><label class="source-grid"><input type="checkbox" checked><span>奥迪 A6L · 703096140</span><span>$26,098</span><span>Buy Now</span><span>B2C-非自营</span></label></div></div></div><button class="link" onclick="addSource()">⊕ 添加车源</button>　<button class="secondary" onclick="openModal('purchaseModal')">从采购清单添加</button></div><div class="modal-foot"><button class="secondary" onclick="closeAll()">取消</button><button class="primary" onclick="openDrawer()">立即创建订单</button></div></section><section class="modal" id="purchaseModal"><div class="modal-head">从采购清单添加<button class="close" onclick="closeModal('purchaseModal')">×</button></div><div class="modal-body"><div class="note">仅可勾选在售的 B2C 非自营车辆；带入后同时写回当前需求。</div><div class="list"><table><thead><tr><th>选择</th><th>车辆</th><th>车源 ID</th><th>商品状态</th><th>FOB价格</th><th>交易方式</th></tr></thead><tbody><tr><td><input id="purchaseCar" type="checkbox"></td><td>丰田 凯美瑞</td><td>703596001</td><td><span class="tag">在售</span></td><td>$21,300</td><td>Buy Now</td></tr><tr><td><input type="checkbox" disabled title="非在售车源不可选择"></td><td>本田 CR-V</td><td>703220410</td><td style="color:#8d96a3">已下架</td><td>$18,700</td><td>Inquire</td></tr></tbody></table></div></div><div class="modal-foot"><button class="secondary" onclick="closeModal('purchaseModal')">取消</button><button class="primary" onclick="bringFromPurchase()">确认带入</button></div></section><aside class="drawer" id="buyerDrawer"><div class="drawer-head">创建【代客建单】订单<button class="close" onclick="closeAll()">×</button></div><div class="drawer-body"><div class="amount" id="amount">共 2 台车，FOB 合计：$37,354</div><h2 style="margin-bottom:18px">订单基础信息</h2><div class="field"><label>客户付款平台：</label><select><option>独立站</option></select></div><div class="field"><label>起运港口：</label><select><option>上海 / Shanghai</option></select></div><h2 style="margin:26px 0 18px">买家基础信息</h2><div class="field"><label>客户类型：</label><select><option>企业</option><option>个人</option></select></div><div class="field"><label>公司名称：</label><input placeholder="请输入公司名称"></div><div class="field"><label>完整姓名：</label><input value="mingzitest12345 mingzitest12345"></div><div class="field"><label>国家：</label><select><option>阿尔及利亚（+213）</option></select></div><div class="field"><label>具体地址：</label><input placeholder="请输入具体地址"></div><div class="field"><label>邮箱：</label><input placeholder="请输入邮箱"></div></div><div class="drawer-foot"><button class="secondary" onclick="closeAll()">取消</button><button class="primary" onclick="confirmOrder()">确认创建订单</button></div></aside><div class="toast" id="toast"></div><script>function openModal(id){document.getElementById('mask').classList.add('show');document.getElementById(id).classList.add('show')}function closeModal(id){document.getElementById(id).classList.remove('show');if(!document.querySelector('.modal.show,.drawer.show'))document.getElementById('mask').classList.remove('show')}function closeAll(){document.getElementById('mask').classList.remove('show');document.querySelectorAll('.modal,.drawer').forEach(x=>x.classList.remove('show'))}function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1800)}function addSource(){const n=document.querySelectorAll('#orderSources .source').length+1;document.getElementById('orderSources').insertAdjacentHTML('beforeend',`<div class="source"><div class="source-head">需求车源 ${n}<button class="link" onclick="this.closest('.source').remove()">删除</button></div><div class="source-body"><div class="field"><label>车源 ID：</label><input value="703596002"><button class="link">搜索</button></div><div class="source-grid"><span>选择</span><span>车辆</span><span>FOB价格</span><span>交易方式</span><span>车源渠道</span></div><label class="source-grid"><input type="checkbox" checked><span>马自达 CX-5 · 703596002</span><span>$16,200</span><span>Inquire</span><span>B2C-非自营</span></label></div></div>`)}function bringFromPurchase(){if(!document.getElementById('purchaseCar').checked)return toast('请先选择采购清单车辆');document.getElementById('demandRows').insertAdjacentHTML('beforeend','<tr><td><span class="pic"></span></td><td>703596001</td><td>丰田</td><td>凯美瑞</td><td>2021款 2.0G 豪华版</td><td><span class="tag">在售</span></td><td>$21,300</td><td>B2C-非自营</td><td>Buy Now</td><td>二手车</td></tr>');document.getElementById('orderSources').insertAdjacentHTML('beforeend','<div class="source"><div class="source-head">需求车源 3</div><div class="source-body"><div class="source-grid"><span>选择</span><span>车辆</span><span>FOB价格</span><span>交易方式</span><span>车源渠道</span></div><label class="source-grid"><input type="checkbox" checked><span>丰田 凯美瑞 · 703596001</span><span>$21,300</span><span>Buy Now</span><span>B2C-非自营</span></label></div></div>');document.getElementById('amount').textContent='共 3 台车，FOB 合计：$58,654';closeModal('purchaseModal');toast('已带入采购清单车辆，并写回当前需求')}function openDrawer(){document.getElementById('orderModal').classList.remove('show');document.getElementById('buyerDrawer').classList.add('show')}function confirmOrder(){closeAll();toast('订单创建成功，当前需求已同步完成')}</script></body></html>
