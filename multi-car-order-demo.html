@@ -1,19 +1,81 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Multi-Order Workspace Demo</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>独立站多车合并下单｜CRM 原型总览</title>
   <style>
-    :root{--brand:#246bdb;--ink:#1f2a3a;--muted:#718096;--line:#e8edf4;--bg:#f5f7fb}*{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--ink)}.app{max-width:1180px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.top h1{margin:0;font-size:23px}.top p{margin:6px 0 0;color:var(--muted)}.tabs{display:flex;gap:8px}.tabs button,.link{border:0;background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:7px;color:#506176;cursor:pointer}.tabs button.active,.primary{background:var(--brand);color:#fff;border-color:var(--brand)}.view{display:none}.view.active{display:block}.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:14px}.split{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}.head h2{font-size:16px;margin:0}.hint{font-size:12px;color:var(--muted)}.item{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.item:last-child{border-bottom:0}.thumb{width:72px;height:52px;background:#e6eefc;border-radius:7px;display:grid;place-items:center;color:#5a78ae}.item main{flex:1}.item b{display:block}.meta{font-size:12px;color:var(--muted);margin-top:6px}.price{font-weight:600;margin-top:7px}.tag{font-size:12px;border-radius:4px;padding:3px 7px;background:#eef7f2;color:#21865a}.tag.warn{background:#fff7e8;color:#ad7513}.primary{border:0;border-radius:7px;padding:9px 13px;font-weight:600;cursor:pointer}table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:500}.side p{line-height:1.7}.panel{display:none;position:fixed;inset:0;background:#0005;align-items:end;justify-content:center}.panel.open{display:flex}.drawer{width:min(620px,100%);background:#fff;border-radius:13px 13px 0 0;padding:22px}.drawer h2{margin-top:0}.actions{display:flex;gap:10px;justify-content:end;margin-top:16px}@media(max-width:720px){.app{padding:16px}.top,.tabs{align-items:flex-start;flex-direction:column}.split{grid-template-columns:1fr}.tabs{width:100%;flex-direction:row}.tabs button{flex:1;padding:8px 4px;font-size:12px}}
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 1120px; color: #1f2937; background: #f5f7fa; font: 14px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    header { height: 64px; display: flex; align-items: center; padding: 0 28px; color: #fff; background: #1f3b64; }
+    h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    .sub { margin-left: 14px; color: #b9c8dd; }
+    .end-switch { display: flex; gap: 8px; margin-left: auto; }
+    button { border: 0; cursor: pointer; font: inherit; }
+    .end-switch button { min-width: 78px; padding: 8px 14px; border: 1px solid #61799a; border-radius: 4px; color: #dce7f5; background: transparent; }
+    .end-switch button.active { border-color: #fff; color: #1f3b64; background: #fff; font-weight: 600; }
+    .layout { display: flex; height: calc(100vh - 64px); min-height: 700px; }
+    aside { width: 220px; padding: 20px 12px; border-right: 1px solid #e3e8ef; background: #fff; }
+    .aside-title { padding: 0 12px 12px; color: #8793a6; font-size: 12px; }
+    .view-list { display: grid; gap: 5px; }
+    .view-list button { padding: 11px 12px; border-radius: 4px; text-align: left; color: #465266; background: #fff; }
+    .view-list button:hover { background: #f2f6fc; }
+    .view-list button.active { color: #1677ff; background: #eaf3ff; font-weight: 600; }
+    main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .crumb { height: 50px; display: flex; align-items: center; padding: 0 24px; border-bottom: 1px solid #e3e8ef; color: #667085; background: #fff; }
+    .crumb b { color: #27364d; }
+    iframe { flex: 1; width: 100%; border: 0; background: #fff; }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="top"><div><h1>Multi-Order Workspace</h1><p>公开演示版：一个订单集合与多条独立执行记录的协同呈现</p></div><nav class="tabs"><button class="active" data-view="list">清单</button><button data-view="orders">订单集合</button><button data-view="detail">明细</button></nav></header>
-    <section id="list" class="view active"><div class="split"><div class="card"><div class="head"><h2>采购清单</h2><span class="hint">已选择 2 项</span></div><div class="item"><div class="thumb">项目</div><main><b>Example Item A</b><div class="meta">参考编号：A-1024 · 来自用户清单</div><div class="price">$12,800</div><span class="tag">可提交</span></main><button class="link" onclick="notify('已移除示例项目')">移除</button></div><div class="item"><div class="thumb">项目</div><main><b>Example Item B</b><div class="meta">参考编号：B-2077 · 来自顾问清单</div><div class="price">$17,600</div><span class="tag">可提交</span></main><button class="link" onclick="notify('已移除示例项目')">移除</button></div><div class="item"><div class="thumb">项目</div><main><b>Example Item C</b><div class="meta">参考编号：C-3180 · 等待校验</div><div class="price">$11,900</div><span class="tag warn">暂不可提交</span></main></div></div><aside class="card side"><h2>演示边界</h2><p>此页面只展示通用的清单、批量提交和集合/明细层级交互，不包含任何业务系统规则、客户数据、服务地址或内部资料。</p><button class="primary" onclick="openDrawer()">提交订单集合</button></aside></div></section>
-    <section id="orders" class="view"><div class="card"><div class="head"><h2>订单集合</h2><span class="hint">支持展开查看独立明细</span></div><table><thead><tr><th>集合编号</th><th>项目数</th><th>来源</th><th>总体状态</th><th>操作</th></tr></thead><tbody><tr><td>G-DEMO-001</td><td>2</td><td>顾问代提交</td><td><span class="tag">处理中</span></td><td><button class="link" onclick="switchView('detail')">查看明细</button></td></tr></tbody></table></div></section>
-    <section id="detail" class="view"><div class="split"><div class="card"><div class="head"><h2>订单集合 G-DEMO-001</h2><span class="tag">处理中</span></div><table><tbody><tr><th>提交来源</th><td>顾问代提交</td></tr><tr><th>项目数量</th><td>2</td></tr><tr><th>总体状态</th><td>独立明细处理中</td></tr></tbody></table></div><div class="card side"><h2>独立明细</h2><p><b>D-DEMO-101</b><br><span class="hint">Example Item A · 处理中</span></p><p><b>D-DEMO-102</b><br><span class="hint">Example Item B · 等待开始</span></p></div></div></section>
-  </div><div id="panel" class="panel"><div class="drawer"><h2>确认提交</h2><p>这是公开演示交互。真实场景中的准入、金额、状态与处理规则均不在本项目中实现。</p><div class="actions"><button class="link" onclick="closeDrawer()">取消</button><button class="primary" onclick="submit()">确认</button></div></div></div><script>const tabs=document.querySelectorAll('.tabs button');function switchView(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));tabs.forEach(b=>b.classList.toggle('active',b.dataset.view===id))}tabs.forEach(b=>b.onclick=()=>switchView(b.dataset.view));function openDrawer(){panel.classList.add('open')}function closeDrawer(){panel.classList.remove('open')}function submit(){closeDrawer();notify('已完成公开演示提交')}function notify(t){alert(t)}</script>
+  <header>
+    <h1>独立站多车合并下单</h1><span class="sub">CRM 原型总览</span>
+    <div class="end-switch" aria-label="终端切换">
+      <button class="active" data-end="pc">PC 端</button>
+      <button data-end="mobile">移动端</button>
+    </div>
+  </header>
+  <div class="layout">
+    <aside><div class="aside-title" id="asideTitle">PC 页面</div><div class="view-list" id="viewList"></div></aside>
+    <main><div class="crumb" id="crumb"></div><iframe id="frame" title="CRM 原型预览"></iframe></main>
+  </div>
+  <script>
+    const views = {
+      pc: [
+        ['purchase', '采购清单', 'https://global-image-pub.guazistatic-global.com/qnbdp8307xa3fe207467824d4bbdcfb6eef11a9e7b1786588401.html'],
+        ['orderList', '订单列表', 'https://global-image-pub.guazistatic-global.com/qnbdp8307x82564a6169fd4aac9b4576a1af6414dc1786546460.html'],
+        ['master', '合单主订单详情', 'https://global-image-pub.guazistatic-global.com/qnbdp8307xc7f9b3c2d8ae4c539e1b7b1cb389e9111786543778.html'],
+        ['child', '子订单详情', 'https://global-image-pub.guazistatic-global.com/qnbdp8307x116053cb92bb461fa3067b96e94d99f51786533771.html'],
+        ['contract', '外销合同', 'https://global-image-pub.guazistatic-global.com/qnbdp8307x3a12d9e02e374285ad75eec190b47dad1786586866.html']
+      ],
+      mobile: [
+        ['mobileCustomer', '客户采购清单与客户订单', 'https://global-image-pub.guazistatic-global.com/qnbdp8307x7dd4886872f149fa9caa3bd9efbcaa871786545590.html']
+      ]
+    };
+    let currentEnd = 'pc';
+    let currentView = 'purchase';
+    const frame = document.getElementById('frame');
+    const list = document.getElementById('viewList');
+    function render() {
+      const items = views[currentEnd];
+      if (!items.some(item => item[0] === currentView)) currentView = items[0][0];
+      document.getElementById('asideTitle').textContent = currentEnd === 'pc' ? 'PC 页面' : '移动端页面';
+      list.innerHTML = items.map(([id, name]) => `<button class="${id === currentView ? 'active' : ''}" data-view="${id}">${name}</button>`).join('');
+      const view = items.find(item => item[0] === currentView);
+      document.getElementById('crumb').innerHTML = `CRM 原型总览&nbsp;&nbsp;/&nbsp;&nbsp;<b>${currentEnd === 'pc' ? 'PC 端' : '移动端'}&nbsp;&nbsp;/&nbsp;&nbsp;${view[1]}</b>`;
+      frame.src = view[2];
+      location.hash = `${currentEnd}/${currentView}`;
+    }
+    document.querySelector('.end-switch').addEventListener('click', event => {
+      const button = event.target.closest('button[data-end]'); if (!button) return;
+      currentEnd = button.dataset.end;
+      document.querySelectorAll('[data-end]').forEach(item => item.classList.toggle('active', item === button));
+      render();
+    });
+    list.addEventListener('click', event => { const button = event.target.closest('[data-view]'); if (button) { currentView = button.dataset.view; render(); } });
+    const parts = location.hash.replace('#', '').split('/');
+    if (views[parts[0]]) { currentEnd = parts[0]; currentView = parts[1] || views[currentEnd][0][0]; document.querySelectorAll('[data-end]').forEach(item => item.classList.toggle('active', item.dataset.end === currentEnd)); }
+    render();
+  </script>
 </body>
 </html>

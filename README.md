@@ -4,7 +4,7 @@
 
 这是“独立站多车合并下单”的个人 GitHub 项目，不承接其他会话或其他项目的文件。
 
-主演示文件为 `multi-car-order-demo.html`：一个独立的多项目清单、订单集合和明细查看交互示例。所有名称、编号、状态和金额均为虚构演示数据。
+统一预览入口为 `multi-car-order-demo.html`：可在同一页面切换 PC 采购清单、订单列表、合单主订单详情、子订单详情、外销合同及移动端页面。所有名称、编号、状态和金额均为虚构演示数据。
 
 本次按项目负责人明确授权，额外上传两份 PC 端测试原型：`customer-detail-purchase-list.html` 与 `customer-detail-demand-agent-order.html`，以及移动端测试草稿：`crm-mobile-multi-car-agent-order-draft.html`。
 
@@ -12,13 +12,14 @@
 
 ## 合单订单页面草稿
 
-以下已确认的 PC 端订单页面集中存放在 `prototypes/orders/`：
+以下最新的 PC 端订单页面集中存放在 `prototypes/orders/`：
 
 - `order-list-merged-draft.html`：合单主订单聚合列表及子订单展开。
-- `order-master-detail-draft.html`：合单主订单详情（本次最新确认页面）。
+- `order-master-detail-current-structure-draft.html`：合单主订单详情（按现有后台结构整理的最新确认页面）。
 - `order-child-detail-draft.html`：单车子订单详情与履约追溯。
+- `order-master-sales-contract-draft.html`：主订单外销合同页面。
 
-三份文件共同用于呈现“列表 → 合单主单 → 单车子订单”的完整查看链路；仅含测试数据，不含公司代码、账号、接口或内部链接。
+上述文件共同用于呈现“采购清单 → 订单列表 → 合单主单 → 单车子订单 → 外销合同”的查看链路；仅含测试数据，不含公司代码、账号、接口或内部链接。
 
 ## 内容边界
 
